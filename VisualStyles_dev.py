@@ -310,6 +310,42 @@ def run(context):
             WVEO_Control = toolbarControlsNAV.addCommand(WVEO_cmdDef)
             WVEO_Control.isVisible = True
             
+            
+        class WorkspaceActivatedHandler(adsk.core.WorkspaceEventHandler):
+            def __init__(self):
+                super().__init__()
+            def notify(self, args):
+                try:
+                    work = adsk.core.Workspace.cast(args.workspace)
+                    if work.isValid and ui:                        
+                        show = True
+                        if work.name.lower() =='simulation':
+                            show = False
+                            
+                        if S_Control:
+                            S_Control.isVisible = show
+                        if SHE_Control:
+                            SHE_Control.isVisible = show
+                        if SVEO_Control:
+                            SVEO_Control.isVisible = show
+                        if W_Control:
+                            W_Control.isVisible = show
+                        if WHE_Control:
+                            WHE_Control.isVisible = show
+                        if WVEO_Control:
+                            WVEO_Control.isVisible = show
+                        if Split_Control:
+                            Split_Control.isVisible = show
+                        
+                except:
+                    if ui:
+                        ui.messageBox('WorkspaceActivatedHandler failed: {}'.format(traceback.format_exc()))
+                        
+               
+            
+        workspaceActivated = WorkspaceActivatedHandler()
+        ui.workspaceActivated.add(workspaceActivated)
+        handlers.append(workspaceActivated)           
         
 
 
