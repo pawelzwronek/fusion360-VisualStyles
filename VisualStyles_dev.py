@@ -1,7 +1,10 @@
-#Author-blowman3
-#Description-Quick change visuals style of active viewport
+#Author - pawelzwronek(aka blowman3)
+#Description - Quick change visuals style of active viewport
 #Modified source of Show Hidden by Patrick Rainsberry
 
+#Changelog
+#v1.0 - Initial version
+#v1.0.1 - Hiding buttons in 'COMPARE' workspace
 
 
 import adsk.core, adsk.fusion, traceback
