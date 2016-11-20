@@ -319,7 +319,7 @@ def run(context):
                     work = adsk.core.Workspace.cast(args.workspace)
                     if work.isValid and ui:                        
                         show = True
-                        if work.name.lower() =='simulation':
+                        if work.name.lower() =='compare':
                             show = False
                             
                         if S_Control:
