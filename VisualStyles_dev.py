@@ -258,12 +258,7 @@ def getConfig():
             print('Creating local file '+file)
             saveLocal(cfg, file)
         else:
-            try:
-                print('Reading file '+file)
-                with open(file,'r') as f:
-                    cfg = f.read()
-            except:
-                print('Failed reading local file')
+            cfg = readLocal(file)
     elif isinstance(file, adsk.core.DataFile):
         prefs = file.name.split('=')
         if len(prefs)==1:
@@ -271,6 +266,10 @@ def getConfig():
             #ui.messageBox('first run')
         elif len(prefs)==2:
             cfg = prefs[1]
+            offlineCfg = readLocal(localFileNameOffline)
+            if offlineCfg and offlineCfg!=cfg:
+                print('Cloud preferences outdated. Using offline local data')
+                cfg = offlineCfg
         else:
             print('error getConfig()')
             #ui.messageBox('error getConfig()')
@@ -378,7 +377,17 @@ def saveLocal(cfg, filename):
     except:
         print('Failed saving local file '+filename)
 
-    
+
+def readLocal(fileName):
+    cfg =None
+    try:
+        print('Reading file '+fileName)
+        with open(fileName,'r') as f:
+            cfg = f.read()
+    except:
+        print('Failed reading local file')
+    return cfg
+
 
 
 def run(context):
