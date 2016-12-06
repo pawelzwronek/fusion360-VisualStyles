@@ -5,7 +5,7 @@
 #Changelog
 # v1.0 - Initial version
 # v1.0.1 - Hiding buttons in 'COMPARE' workspace
-# v1.1 - Customization and saving preferences to local disk and on cloud
+# v1.2 - Customization and saving preferences to local disk and on cloud
 
 
 import adsk.core, adsk.fusion, traceback
@@ -62,6 +62,9 @@ configFile = None
 dontAskAgain = False
 folder =None
 progressDialog =None
+
+logToFile =False
+clicksInARow =0
 
 def progress(msg, val=None):
     global progressDialog
@@ -454,7 +457,19 @@ def run(context):
                     cfg=''
                     for item in cmdDef.listItems:
                         cfg += '1' if item.isSelected else '0'
-                        
+                       
+                    pos =3
+                    global config, clicksInARow, logToFile, _tmpPath
+                    if config and len(config)>pos+1 and len(cfg)>pos+1:
+                        if config[:pos]+config[pos+1:]==cfg[:pos]+cfg[pos+1:]:
+                            clicksInARow +=1
+                            if clicksInARow>=6 and not logToFile:
+                                logToFile =True
+                                print('Dumping to file')
+                                ui.messageBox('Log dumped to: '+_tmpPath+'\nFurther loging to this file is on')
+                        else:
+                            clicksInARow =0
+                                
                     setConfig(cfg)
                     updateVisibility(cfg)
 
@@ -597,7 +612,7 @@ def stop(context):
             
         for obj in objArrayNav:
             destroyObject(ui, obj)
-        print('stopped.', delete=True) 
+        print('stopped.')
     except:
         if ui:
             ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
@@ -645,20 +660,36 @@ def commandControlByIdForNav(id):
     
 
 # Logfile 
-import tempfile
 _tmpPath =None
+_tmpBuff =[]
+
 def print(_str, delete=False):
-    global _tmpPath
-    if not _tmpPath:
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, prefix='visualstyles', suffix='.log') as t:
-            _tmpPath = t.name
-        
+    global _tmpPath, _tmpBuff
+
     if delete:
         if _tmpPath and len(_tmpPath)>10 and os.path.exists(_tmpPath):
             os.unlink(_tmpPath)
             _tmpPath =None
-    elif _tmpPath:
-#        with open('t:/visualstyles-out.log','a') as f:
-        with open(_tmpPath,'a') as f:
-            t = datetime.datetime.now().strftime('%c.%f')[:-4]
-            f.write(t+' '+ _str + '\n')
+        _tmpBuff =[]
+
+    log =''
+    if _str:
+        t = datetime.datetime.now().strftime('%c.%f')[:-4]
+        log = t+' '+ _str + '\n'
+        
+    if logToFile:
+        if not _tmpPath:
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, prefix='visualstyles_', suffix='.log') as t:
+                if t and t.file and t.name:
+                    _tmpPath = t.name
+            
+        if _tmpPath:
+    #        with open('t:/visualstyles-out.log','a') as f:
+            with open(_tmpPath,'a') as f:
+                if len(_tmpBuff)>0:
+                    f.writelines(_tmpBuff)
+                    _tmpBuff =[]
+                f.write(log)
+    else:
+        _tmpBuff.append(log)   
