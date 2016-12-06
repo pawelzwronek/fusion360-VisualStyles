@@ -93,6 +93,7 @@ prjName = '_Preferences'
 folderName = 'VisualStyles'
 fileName = 'prefs'
 localFileName = 'visualStylesPref.cfg'
+localFileNameOffline = 'visualStylesPrefOffline.cfg'
 
 def getPrefFile(forceLocal=False):
     print('getPrefFile()...')  
@@ -147,7 +148,7 @@ def getPrefFile(forceLocal=False):
             return localFileName
         elif ret==adsk.core.DialogResults.DialogCancel:
             dontAskAgain = True
-            return None
+            return localFileNameOffline
 
     if not prjExists:
         print('Looking for project '+prjName)    
@@ -161,7 +162,7 @@ def getPrefFile(forceLocal=False):
             print('Failed creating project '+prjName)    
             ui.messageBox('Unable to create project  \'' +prjName+ '\'  :(\n'
                             'Try again later or please create it manualy')
-            return None
+            return localFileNameOffline
 
     print('Looking for folder '+folderName)    
     folder = prj.rootFolder.dataFolders.itemByName(folderName)
@@ -191,7 +192,7 @@ def getPrefFile(forceLocal=False):
         print('Failed creating folder '+folderName)    
         ui.messageBox('Unable to create folder  \'' +folderName+ '\'  :(\n'
                         'Try again later or please create it manualy')
-        return None
+        return localFileNameOffline
 
     print('Found folder '+folderName)    
 
@@ -226,8 +227,8 @@ def getPrefFile(forceLocal=False):
             folder = fo
             return f
 
-    print('File not found '+fileName)    
-    return None
+    print('File not found '+fileName+' Using offline file')    
+    return localFileNameOffline
 
 
 def getPreferencesFile(forceLocal=False):
@@ -238,27 +239,31 @@ def getPreferencesFile(forceLocal=False):
         print('getPreferencesFile return cached \'configFile\'')
         return configFile
     else:
-        configFile = getPrefFile(forceLocal)
-        
+        try:
+            configFile = getPrefFile(forceLocal)
+        except:
+            print('Failed getPrefFile')
+            configFile =localFileNameOffline
+            
     return configFile
 
 
 def getConfig():
-    app = adsk.core.Application.get()
-    ui  = app.userInterface
-
     cfg = None
 
     file = getPreferencesFile()
     if isinstance(file, str):
-        cfg = validateConfig(cfg, True)
+        cfg = validateConfig(cfg, file==localFileName)
         if not os.path.exists(file):
             print('Creating local file '+file)
-            with open(file,'w') as f:
-                f.write(cfg)
+            saveLocal(cfg, file)
         else:
-            with open(file,'r') as f:
-                cfg = f.read()
+            try:
+                print('Reading file '+file)
+                with open(file,'r') as f:
+                    cfg = f.read()
+            except:
+                print('Failed reading local file')
     elif isinstance(file, adsk.core.DataFile):
         prefs = file.name.split('=')
         if len(prefs)==1:
@@ -277,6 +282,68 @@ def getConfig():
     global config
     config = validateConfig(cfg)
     return config
+    
+    
+def setConfig(cfg):
+    app = adsk.core.Application.get()
+    ui  = app.userInterface
+
+    cfg_old = cfg    
+    cfg = validateConfig(cfg)
+    print('setConfig()' + str(cfg_old) + ' ' + cfg)
+    
+    if cfg[localPreferencesLocation]=='1': 
+        global dontAskAgain
+        dontAskAgain =False
+        forceLocal = True
+    else:
+        try:
+            if os.path.exists(localFileName):
+                os.unlink(localFileName) #remove local preferences
+        except:
+            pass
+        forceLocal = False
+    
+    file = getPreferencesFile(forceLocal)
+    if isinstance(file, str):
+        if cfg[localPreferencesLocation] != '1':
+            cfg = validateConfig(cfg, file==localFileName)
+        saveLocal(cfg, file)
+    elif isinstance(file, adsk.core.DataFile):
+        prefs = file.name.split('=')
+        newFileName =''
+        if len(prefs)==1 or len(prefs)==2:
+            newFileName = prefs[0]+'='+cfg
+            try:
+                if file and file.isValid:
+                    print('Setting cloud file name to: '+ newFileName)
+                    file.name = newFileName
+                    saveLocal(cfg, localFileNameOffline)
+            except:
+                print('Failed setting cloud file name to: '+ newFileName)
+                print('Trying again...')
+                try:
+                    file = getPrefFile(forceLocal)
+                    if file and isinstance(file,file, adsk.core.DataFile) and file.isValid:
+                        print('Setting cloud file name to: '+ newFileName)
+                        file.name = newFileName
+                        saveLocal(cfg, localFileNameOffline)
+                    elif isinstance(file,str):
+                        cfg = validateConfig(cfg, file==localFileName)
+                        saveLocal(cfg, file)
+                except:
+                    print('Failed getPrefFile or file.name = newFileName')
+                    saveLocal(cfg, localFileNameOffline)
+            finally:
+                progress(None)
+
+        else:
+            ui.messageBox('error setConfig()') 
+    else:
+        global config
+        config = cfg
+    progress(None)
+    
     
 def validateConfig(cfg=None, forceLocal=False):
     init_config = '1'*visualStylesCmdCount + '0'
@@ -301,56 +368,18 @@ def validateConfig(cfg=None, forceLocal=False):
     return ''.join(out)
     
     
-def setConfig(cfg):
-    app = adsk.core.Application.get()
-    ui  = app.userInterface
-
-    cfg_old = cfg    
-    cfg = validateConfig(cfg)
-    print('setConfig()' + str(cfg_old) + ' ' + cfg)
-    
-    if cfg[localPreferencesLocation]=='1': 
-        global dontAskAgain
-        dontAskAgain =False
-        forceLocal = True
-    else:
-        if os.path.exists(localFileName):
-            os.unlink(localFileName) #remove local preferences
-        forceLocal = False
-    
-    file = getPreferencesFile(forceLocal)
-    if isinstance(file, str):
-        if cfg[localPreferencesLocation] != '1':
-            cfg = validateConfig(cfg, True)
-        print('Creating local file '+file)
-        with open(file,'w') as f:
+def saveLocal(cfg, filename):
+    print('Saving local file '+filename)
+    try:
+        with open(filename,'w') as f:
             f.write(cfg)
-    elif isinstance(file, adsk.core.DataFile):
-        prefs = file.name.split('=')
-        newFileName =''
-        if len(prefs)==1 or len(prefs)==2:
-            newFileName = prefs[0]+'='+cfg
-            try:
-                if file and file.isValid:
-                    print('Setting cloud file name to: '+ newFileName)
-                    file.name = newFileName
-            except:
-                print('Failed setting cloud file name to: '+ newFileName)
-                print('Trying again...')
-                file = getPrefFile()
-                if file and file.isValid:
-                    print('Setting cloud file name to: '+ newFileName)
-                    file.name = newFileName
-            finally:
-                progress(None)
+        if filename==localFileName and os.path.exists(localFileNameOffline):
+            os.unlink(localFileNameOffline)
+    except:
+        print('Failed saving local file '+filename)
 
-        else:
-            ui.messageBox('error setConfig()') 
-    else:
-        global config
-        config = cfg
-    progress(None)
     
+
 
 def run(context):
     print('Init...') 
@@ -459,7 +488,7 @@ def run(context):
                     cmdDef.listItems.add(cmds[id].name, True if config[i]!='0' else False)
                     i +=1
 
-        print('Creating Visual Styles checkboxes')
+        print('Creating Visual Styles buttons')
         buttons = []            
         separator = None
         i =0            
