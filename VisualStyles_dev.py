@@ -6,6 +6,7 @@
 # v1.0 - Initial version
 # v1.0.1 - Hiding buttons in 'COMPARE' workspace
 # v1.2 - Customization and saving preferences to local disk and on cloud
+# v1.21 - Move local configuration to roaming directory
 
 
 import adsk.core, adsk.fusion, traceback
@@ -95,9 +96,9 @@ def progress(msg, val=None):
 prjName = '_Preferences'
 folderName = 'VisualStyles'
 fileName = 'prefs'
-localFileName = 'visualStylesPref.cfg'
-localFileNameOffline = 'visualStylesPrefOffline.cfg'
-
+configPath = os.path.join(os.environ['APPDATA'], 'Autodesk\\ApplicationPlugins\\')
+localFileName = os.path.join(configPath, 'visualStylesPref.cfg')
+localFileNameOffline = os.path.join(configPath, 'visualStylesPrefOffline.cfg')
 def getPrefFile(forceLocal=False):
     print('getPrefFile()...')  
 
