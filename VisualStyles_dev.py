@@ -6,7 +6,7 @@
 # v1.0 - Initial version
 # v1.0.1 - Hiding buttons in 'COMPARE' workspace
 # v1.2 - Customization and saving preferences to local disk and on cloud
-# v1.21 - Move local configuration to roaming directory
+# v1.2.1 - Move local configuration to roaming directory
 
 
 import adsk.core, adsk.fusion, traceback
