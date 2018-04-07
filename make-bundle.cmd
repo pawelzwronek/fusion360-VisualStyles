@@ -1,6 +1,6 @@
 @prompt $g
 
-set dst="VisualStyles_v1.2.1"
+set dst="VisualStyles_v1.2.2"
 
 rmdir /S /Q %dst%
 mkdir %dst%
