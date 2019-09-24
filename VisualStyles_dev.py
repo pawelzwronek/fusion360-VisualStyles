@@ -9,7 +9,7 @@
 # v1.2.1 - Move local configuration to roaming directory
 # v1.2.2 - Fix issue on Mac
 #        - Reformatted source
-
+# v1.2.3 - Remove folder global variable
 
 import adsk.core, adsk.fusion, traceback
 import sys, os, datetime
@@ -67,7 +67,6 @@ hideAll = False
 config = None
 configFile = None
 dontAskAgain = False
-folder = None
 progressDialog = None
 
 logToFile = False
@@ -179,7 +178,6 @@ def getPrefFile(forceLocal=False):
             return localFileNameOffline
 
     print('Looking for folder ' + folderName)
-    global folder
     folder = prj.rootFolder.dataFolders.itemByName(folderName)
     if not folder:
         print('Folder not found ' + folderName)
@@ -237,9 +235,6 @@ def getPrefFile(forceLocal=False):
         if fileName in f.name:
             print('File found ' + f.name)
             # ui.messageBox('VisualStyles preferences file created','Success')
-            fo = folder
-            global folder
-            folder = fo
             return f
 
     print('File not found ' + fileName + ' Using offline file')
